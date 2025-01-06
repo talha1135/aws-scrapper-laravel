@@ -47,7 +47,7 @@ class FileUploadController extends Controller
             $worksheet->setCellValue('D1', 'EU Responsible Person Email');
             $worksheet->setCellValue('E1', 'Manufacturer Name');
             $worksheet->setCellValue('F1', 'Manufacturer Address');
-            $worksheet->setCellValue('G1', 'Manufacturer Contact');
+            $worksheet->setCellValue('G1', 'Manufacturer Email');
 
             // Fetch ASINs from the uploaded file (Assuming ASINs are in column B)
             $asins = $this->extractAsinsFromExcel(storage_path('app/' . $path));
@@ -56,6 +56,7 @@ class FileUploadController extends Controller
             $rowNum = 2; // Start at row 2
             $client = new Client();
             foreach ($asins as $asin) {
+
                 // Skip if ASIN is empty
                 if (!$asin) continue;
 
@@ -69,8 +70,9 @@ class FileUploadController extends Controller
                 $worksheet->setCellValue('D' . $rowNum, $data['eu_email']);
                 $worksheet->setCellValue('E' . $rowNum, $data['manufacturer_name']);
                 $worksheet->setCellValue('F' . $rowNum, $data['manufacturer_address']);
-                $worksheet->setCellValue('G' . $rowNum, $data['manufacturer_contact']);
+                $worksheet->setCellValue('G' . $rowNum, $data['manufacturer_email']);
                 $rowNum++;
+              
             }
 
             // Save the processed file
@@ -123,12 +125,12 @@ class FileUploadController extends Controller
             'accept' => 'text/html, application/json',
             'content-type' => 'application/json',
             'x-amz-acp-params' => 'tok=FBsk2BFo33RUH3sujiaU_dkdakUcEBnthvUxK3jaTj4;ts=1734623286395;rid=YPAQAPMK7HS057YPN4AD',
-            'cookie' => 'session-id=261-5758951-0539711; session-token=XYZ',
+            'cookie' => 'session-id=261-5758951-0539711; session-token=XYZ; i18n-prefs=EUR; session-id=262-7848145-1508317; session-id-time=2082787201l; sp-cdn="L5Z9:PK"; ubid-acbde=262-1289791-0543238',
             'Referer' => 'https://www.amazon.de/dp/B0BJ1Q3HWZ',
         ];
 
         try {
-            $response = $client->post('https://www.amazon.de/acp/buffet-mobile-card/buffet-mobile-card-3e67eb5a-92a5-4eae-9a4d-c1d3082690fb-1734571386882/getRspManufacturerContent', [
+            $response = $client->post('https://www.amazon.de/acp/buffet-disclaimers-card/buffet-disclaimers-card-ef229975-1db0-418e-a1c7-11c300d57e83-1735896261738/getRspManufacturerContent?page-type=Detail&stamp=1736164113080', [
                 'json' => ['asin' => $asin],
                 'headers' => $headers
             ]);
@@ -136,36 +138,36 @@ class FileUploadController extends Controller
             $html = $response->getBody()->getContents();
             $crawler = new Crawler($html);
 
-            // Extract EU Responsible Person details
+            // EU Responsible Person details
             $euResponsiblePerson = [
-                'name' => $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-rsp-content .a-box .a-box-inner .a-size-base.a-text-bold')->first()->getNode(0)),
+                'name' => $this->safeGetText($crawler->filter('#buffet-sidesheet-rsp-content-container #rspComponent .a-section .a-size-base.a-text-bold')->first()->getNode(0)),
                 'address' => implode(', ', [
-                    $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-rsp-content .a-box .a-box-inner .a-list-item')->eq(1)->getNode(0)),
-                    $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-rsp-content .a-box .a-box-inner .a-list-item')->eq(2)->getNode(0)),
-                    $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-rsp-content .a-box .a-box-inner .a-list-item')->eq(3)->getNode(0))
+                    $this->safeGetText($crawler->filter('#buffet-sidesheet-rsp-content-container #rspComponent .a-box .a-box-inner .a-list-item')->eq(0)->getNode(0)),
+                    $this->safeGetText($crawler->filter('#buffet-sidesheet-rsp-content-container #rspComponent .a-box .a-box-inner .a-list-item')->eq(1)->getNode(0)),
+                    $this->safeGetText($crawler->filter('#buffet-sidesheet-rsp-content-container #rspComponent .a-box .a-box-inner .a-list-item')->eq(2)->getNode(0))
                 ]),
-                'email' => $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-rsp-content .a-box .a-box-inner .a-spacing-top-small .a-list-item')->first()->getNode(0))
+                'email' => $this->safeGetText($crawler->filter('#buffet-sidesheet-rsp-content-container #rspComponent .a-box .a-box-inner .a-spacing-top-small .a-list-item')->first()->getNode(0))
             ];
 
-            // Extract Manufacturer details
+            // Manufacturer details
             $manufacturerInfo = [
-                'name' => $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-manufacturer-content .a-box .a-box-inner .a-size-base.a-text-bold')->first()->getNode(0)),
+                'name' => $this->safeGetText($crawler->filter('#buffet-sidesheet-manufacturer-content-container .a-section .a-size-base.a-text-bold')->first()->getNode(0)),
                 'address' => implode(', ', [
-                    $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-manufacturer-content .a-box .a-box-inner .a-list-item')->eq(0)->getNode(0)),
-                    $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-manufacturer-content .a-box .a-box-inner .a-list-item')->eq(1)->getNode(0)),
-                    $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-manufacturer-content .a-box .a-box-inner .a-list-item')->eq(2)->getNode(0))
+                    $this->safeGetText($crawler->filter('#buffet-sidesheet-manufacturer-content-container .a-box .a-box-inner .a-list-item')->eq(0)->getNode(0)),
+                    $this->safeGetText($crawler->filter('#buffet-sidesheet-manufacturer-content-container .a-box .a-box-inner .a-list-item')->eq(1)->getNode(0)),
+                    $this->safeGetText($crawler->filter('#buffet-sidesheet-manufacturer-content-container .a-box .a-box-inner .a-list-item')->eq(2)->getNode(0))
                 ]),
-                'contact' => $this->safeGetText($crawler->filter('#buffet-sidesheet-mobile-manufacturer-content .a-box .a-box-inner .a-spacing-top-small .a-list-item')->first()->getNode(0))
+                'email' => $this->safeGetText($crawler->filter('#buffet-sidesheet-manufacturer-content-container .a-box .a-box-inner .a-spacing-top-small .a-list-item')->first()->getNode(0)),
             ];
 
-            // Return the manufacturer and EU responsible person data
+            // Return the refined data
             return [
                 'eu_name' => $euResponsiblePerson['name'] ?: 'N/A',
                 'eu_address' => $euResponsiblePerson['address'] ?: 'N/A',
                 'eu_email' => $euResponsiblePerson['email'] ?: 'N/A',
                 'manufacturer_name' => $manufacturerInfo['name'] ?: 'N/A',
                 'manufacturer_address' => $manufacturerInfo['address'] ?: 'N/A',
-                'manufacturer_contact' => $manufacturerInfo['contact'] ?: 'N/A'
+                'manufacturer_email' => $manufacturerInfo['email'] ?: 'N/A',
             ];
         } catch (\Exception $e) {
             Log::error('Error fetching data for ASIN: ' . $asin . ' - ' . $e->getMessage());
@@ -175,10 +177,11 @@ class FileUploadController extends Controller
                 'eu_email' => 'N/A',
                 'manufacturer_name' => 'N/A',
                 'manufacturer_address' => 'N/A',
-                'manufacturer_contact' => 'N/A'
+                'manufacturer_email' => 'N/A'
             ];
         }
     }
+
 
     // Helper function to safely get text from a node
     private function safeGetText($node)
